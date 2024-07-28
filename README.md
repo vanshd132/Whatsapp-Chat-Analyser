@@ -19,4 +19,4 @@ This project analyzes chat data from a given source file and provides various in
    ```bash
    pip install pandas plotly matplotlib wordcloud
 ## Output Pics
-![Output1](Output_pics\Screenshot 2024-07-28 230745.png)
+![Output1](Output_pics/Screenshot 2024-07-28 230745.png)
