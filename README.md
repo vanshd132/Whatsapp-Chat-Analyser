@@ -1,6 +1,13 @@
 # Whatsapp-Chat-Analyser
 A python based project to create neccessary data analytics on whatsapp chat file
 
+## Using it
+To make it work just copy the content of whatsapp chat file in "Modified_Sorce.txt" or rename it with this name and use it instead of given file
+Then using keeping the "Main.ipynb" file and "Modified_Sorce.txt" in same folder , use the jupyter notebook to run "Main.ipynb" file 
+It will generate the needed stats
+
+In case to better understand each part of code refer to "Code_parts" folder and check various files as per need for specific capability
+
 # Chat Analyzer
 
 This project analyzes chat data from a given source file and provides various insights such as top authors, word clouds, and message searches.
