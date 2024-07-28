@@ -1,0 +1,247 @@
+import re
+import regex
+import pandas as pd
+import numpy as np
+import plotly.express as px
+from collections import Counter
+import matplotlib.pyplot as plt
+from os import path
+from PIL import Image
+import datetime
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+%matplotlib inline
+
+def startWithDateAndTimeAndroid(s):
+    pattern = r'^(\d{1,2}/\d{1,2}/\d{1,2}), (\d{1,2}:\d{2})[ ]?(AM|PM|am|pm)? -'
+    result=re.match(pattern,s)
+    if result:
+        return True
+    return False
+
+def FindAuthor(s):
+    s=s.split(":")
+    if len(s)==2:
+        return True 
+    else:
+        return False
+
+def getDataPointAndroid(line):
+    splitLine = line.split(' - ')
+    dateTime, message = splitLine[0], ' '.join(splitLine[1:])
+    
+    # Extracting date, time, and author from the dateTime string
+    date, time = None, None
+    if ',' in dateTime:
+        date_time_components = dateTime.split(', ')
+        if len(date_time_components) == 2:
+            date, time = date_time_components
+            
+    # Extracting author from the message
+    author = None
+    if FindAuthor(message):
+        splitMessage = message.split(':')
+        author = splitMessage[0]
+        message = ' '.join(splitMessage[1:])
+    
+    return date, time, author, message
+
+
+def split_count(text):
+    emoji_list=[]
+    emojis_iter=map(lambda y:y, emoki.UNICODE_EMOJI['en'].keys())
+    regex_set=re.compile('|'.join(re.escape(em) for em in emojis_iter))
+    emojis_list=regex_set.findall(text)
+    return emoji_list
+
+
+parsedData=[]
+conversationPath='Source.txt'
+with open(conversationPath,encoding='utf-8') as fp:
+    first=fp.readline()
+    print(first)
+    if '[' in first:
+        device='ios'
+    else:
+        device="android"
+
+    fp.readline()
+    messageBuffer=[]
+    date, time, author= None, None, None
+    while True:
+        line=fp.readline()
+        if not line:
+            break
+        if device=='ios':
+            line.strip()
+            
+            if startWithDateAndTimeios(line):
+                if len(messageBuffer)>0:
+                    paresedData.append([date,time,author,' '.join(messageBuffer)])
+                messageBuffer.clear()
+                date, time, author, message= getDataPointios(line)
+                messageBuffer.append(message)
+            else:
+                line=(line.encode('ascii','ignore')).decode("utf-08")
+                if startWithDateAndTimeios(line):
+                    if len(messageBuffer)>0:
+                        parsedData.append([date,time,author,' '.join(messageBuffer)])
+                    messageBuffer.clear()
+                    messageBuffer.append(message)
+                else:
+                    messageBuffer.append(line)
+        else:
+            line=line.strip()
+        
+            
+            if startWithDateAndTimeAndroid(line) or True:
+                data = getDataPointAndroid(line)
+                if data is not None:
+                    date, time, new_author, message = data
+                    if date is None:
+                        messageBuffer.append(line)
+                    else:
+                        if len(messageBuffer)>0:
+                            parsedData.append([date,time,author,' '.join(messageBuffer)])
+                        messageBuffer.clear()
+                
+                        date, time, author, message= getDataPointAndroid(line)
+                        messageBuffer.append(message)
+            
+
+
+if device=='android':
+    df = pd.DataFrame(parsedData, columns=['Date', 'Time', 'Author', 'Message'])
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce', format='%m/%d/%y')
+
+    URLPATTERN=r'(https?://\S+)'
+    df['urlcount']=df.Message.apply(lambda x: re.findall(URLPATTERN, x)).str.len()
+else:
+    df = pd.DataFrame(parsedData, columns=['Date', 'Time', 'Author', 'Message'])
+    df = df.dropna()  # Drop rows with missing values
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce', format='%m/%d/%y')
+
+    URLPATTERN=r'(https?://\S+)'
+    df['urlcount']=df.Message.apply(lambda x:re.findall(URLPATTERN,x)).str.len()
+
+
+
+df.head(20)
+
+
+
+# Get the message count for each author
+author_message_counts = df['Author'].value_counts()
+
+# Filter authors with message count more than 100
+authors_with_more_than_100_messages = author_message_counts[author_message_counts > 100]
+
+# Display the unique author names
+print("Authors with more than 100 messages:")
+print(authors_with_more_than_100_messages.index.tolist())
+
+
+total_messages=df.shape[0]
+print(total_messages)
+
+
+links=np.sum(df.urlcount)
+print(links)
+
+
+link_messages=df[df['urlcount']>0]
+deleted_messages=df[(df["Message"]==" You deleted this message")|(df["Message"]==" This message was deleted ")]
+media_messages_df=df[(df['Message']==' <Media omitted>')|(df['Message']==' image omitted')|(df['Message']==' video omitted')|(df['Message']==' sticker omitted')]
+df = df.drop(media_messages_df.index)
+df = df.drop(deleted_messages.index)
+df = df.drop(link_messages.index)
+           
+
+
+df.info()
+
+
+df['Letter_Count']=df['Message'].apply(lambda s : len(s))
+df['Word_count']=df['Message'].apply(lambda s : len(s.split(' ')))
+df['Message_count']=1
+
+
+df.head(10)
+
+
+
+
+author_message_counts = df['Author'].value_counts()
+
+# Sort the author_message_counts in descending order and select the top 5
+top_authors = author_message_counts.head(5)
+
+# Create a DataFrame from the top_authors Series
+top_authors_df = top_authors.reset_index()
+top_authors_df.columns = ['Author', 'MessageCount']
+
+# Plot the bar graph
+fig = px.bar(top_authors_df, x='Author', y='MessageCount', title='Top 5 Senders and Their Message Counts')
+
+# Hide every x-axis value
+
+
+fig.show()
+
+
+
+
+df.info()
+
+
+
+pd.set_option('display.max_colwidth', None)
+
+# Filter messages for the specific author
+shreyash_data = df[df['Author'] == 'Shreyash'][['Date', 'Message']]
+
+# Function to format date and message
+def format_message(row):
+    if pd.notnull(row['Date']):  # Check if the date is not null
+        return f"{row['Date'].strftime('%Y-%m-%d %H:%M')} : '{row['Message']}'"
+    else:
+        return "Invalid Date : '{}'".format(row['Message'])
+
+# Apply the function to each row
+shreyash_messages = shreyash_data.apply(format_message, axis=1)
+
+# Print the messages
+print("Number of messages found : {}".format(len(shreyash_messages)))
+print(shreyash_messages.to_string(index=False))
+
+
+
+
+search_word = input("Enter a word to search for in messages: ").lower()
+
+# Filter messages containing the search word
+messages_containing_word = df[df['Message'].str.lower().str.contains(search_word)]['Message']
+
+# Get the count of messages containing the search word
+message_count = len(messages_containing_word)
+
+# Print the count of messages found
+print("Number of messages containing the word '{}': {}".format(search_word, message_count))
+
+# Print the messages containing the search word
+print("\nMessages containing the word '{}':".format(search_word))
+for message in messages_containing_word:
+    print(message)
+
+
+
+
+all_messages = ' '.join(df['Message'].tolist())
+
+# Generate word cloud
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_messages)
+
+# Plot word cloud
+plt.figure(figsize=(10, 6))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
