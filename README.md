@@ -19,4 +19,5 @@ This project analyzes chat data from a given source file and provides various in
    ```bash
    pip install pandas plotly matplotlib wordcloud
 ## Output Pics
-![Output1](Output_pics/Screenshot 2024-07-28 230745.png)
+![Output1](https://github.com/vanshd132/Whatsapp-Chat_Analyser/raw/main/Output_pics/Screenshot%202024-07-28%20230745.png)
+
